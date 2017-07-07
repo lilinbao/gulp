@@ -1,4 +1,4 @@
-//npm install less-plugin-autoprefix gulp-rev less-plugin-clean-css gulp-util gulp-less gulp-sourcemaps gulp-jshint gulp-concat gulp-uglify gulp-imagemin gulp-notify gulp-rename gulp-cache del --save-dev
+//npm install less-plugin-autoprefix gulp-rev gulp-rev-replace less-plugin-clean-css gulp-util gulp-less gulp-sourcemaps gulp-jshint gulp-concat gulp-uglify gulp-imagemin gulp-notify gulp-rename gulp-cache del --save-dev
 var setting = {
     isProduction : true,
     sourceMap : false
@@ -7,19 +7,21 @@ var setting = {
 var path = {
     src : {
         base : 'app',
+        view : 'app/view',
         css  : 'app/css/style.less',
         img  : 'app/image/*.*',
         js   : 'app/js/*.js'
     },
     dist : {
         base : '.',
+        view : './view',
         css  : './css',
         img  : './image',
         js   : './js'
     },
     ext : {
         base : './bower_components',
-        jquery : './bower_components/jquery/jquery.min.js',
+        jquery : './bower_components/jquery/dist/jquery.min.js',
         bootstrap : './app/css/bootstrap.less'
     }
 }
@@ -40,9 +42,11 @@ var gulp = require('gulp'),
     del = require('del'),
     gutil = require('gulp-util'),
     reversion = require('gulp-rev'),
+    revReplace = require('gulp-rev-replace'),
     lessMinifier = require('less-plugin-clean-css')
     autoprefix = new autoprefixer({browsers: ["last 10 versions"]}),
-    minifyCss = new lessMinifier({advanced: true});
+    minifyCss = new lessMinifier({advanced: true})
+    fs = require('fs');
 
 if(gutil.env.dev === true) {
     setting.sourceMap = true;
@@ -89,7 +93,8 @@ gulp.task('scripts', function() {
         'undef': true,
         'unused': true,
         'browser': true,
-        'devel': false
+        'devel': false,
+        'globals' : ['jQuery']
     }))
     .pipe(setting.isProduction ? gutil.noop() : sourcemaps.init())
     .pipe(jshint.reporter('default'))
@@ -112,38 +117,73 @@ gulp.task('images', function() {
 
 // Clean
 gulp.task('clean', function() {
-  return del([path.dist.js, path.dist.css, path.dist.img]);
+  return del([path.dist.js, path.dist.css, path.dist.img,path.dist.view]);
 });
-
+//Copy Html View Files
+gulp.task('copyHtml', function(){
+    return gulp.src([path.src.view + '/*', path.src.view + '/*/**/*'])
+    .pipe(gulp.dest(path.dist.view));
+});
+//Copy js libraries Files
+gulp.task('copyJsLib', function(){
+    return gulp.src([path.ext.jquery])
+    .pipe(gulp.dest(path.dist.js));
+});
 // Versioning 
 gulp.task('reversion', function () {
     // by default, gulp would pick `assets/css` as the base, 
     // so we need to set it explicitly: 
-    return gulp.src([path.dist.css + '/*.css', path.dist.js + '/*.js'], {base: './'})
-        .pipe(gulp.dest('.'))  // copy original assets to build dir 
+    return gulp.src([path.dist.css + '/*.min.css', path.dist.js + '/*.min.js'], {base: './'})
+        .pipe(gulp.dest('.'))  // copyHtml original assets to build dir 
         .pipe(reversion())
         .pipe(gulp.dest('.'))  // write rev'd assets to build dir 
         .pipe(reversion.manifest())
         .pipe(gulp.dest('.')); // write manifest to build dir 
 });
 
+gulp.task('replace', ['copyHtml', 'reversion'], function(){
+    var manifest = gulp.src("./rev-manifest.json");
+    return gulp.src(path.dist.view + '*/**/*.*')
+    .pipe(revReplace({manifest: manifest}))
+    .pipe(gulp.dest('.'));
+});
+
+
 // Default task
-gulp.task('default', ['clean'], function() {
-    if(setting.isProduction)
-        gulp.start('styles', 'bootstrap', 'scripts', 'images', 'reversion');
-    else
-        gulp.start('styles', 'bootstrap', 'scripts', 'images', 'watch');
+gulp.task('default', ['clean','styles', 'bootstrap', 'scripts', 'images'], function() {
+    if(setting.isProduction){
+        gulp.start('replace');
+    }else
+        gulp.start('watch');
+
 });
 
 // Watch
 gulp.task('watch', function() {
+    try{
+        if (!fs.existsSync(path.dist.js + '/lib.js')) {
+            gutil.log('js lib not exist, trying to copy Html it to distination');
+            gulp.start('copyJsLib');
+        }
+        fs.access(path.dist.view, fs.F_OK, function(exists){
+            if(exists){
+                gulp.start('copyHtml');
+            }else{
+                gutil.log('view already exists');
+            }
+        });
+    }catch(err){
+        gutil.log('error occur: ' + err);
+    }
+    
+    
+    gulp.watch(path.src.base + '/view/**/*.html', ['copyHtml']);
+    // Watch .scss files
+    gulp.watch(path.src.base + '/css/**/*.less', ['styles']);
 
-  // Watch .scss files
-  gulp.watch(path.src.base + '/css/**/*.less', ['styles']);
+    // Watch .js files
+    gulp.watch(path.src.js, ['scripts']);
 
-  // Watch .js files
-  gulp.watch(path.src.js, ['scripts']);
-
-  // Watch image files
-  gulp.watch(path.src.img, ['images']);
+    // Watch image files
+    gulp.watch(path.src.img, ['images']);
 });
