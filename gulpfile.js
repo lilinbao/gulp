@@ -13,11 +13,11 @@ var path = {
         js   : 'app/js/*.js'
     },
     dist : {
-        base : '.',
-        view : './view',
-        css  : './css',
-        img  : './image',
-        js   : './js'
+        base : './dist',
+        view : './dist/view',
+        css  : './dist/css',
+        img  : './dist/image',
+        js   : './dist/js'
     },
     ext : {
         base : './bower_components',
