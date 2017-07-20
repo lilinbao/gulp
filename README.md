@@ -1,2 +1,2 @@
 # gulp
-Gulp Project for Learning
+Minimum Gulp Project
