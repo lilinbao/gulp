@@ -14,11 +14,11 @@ var path = {
         js   : 'app/js/*.js'
     },
     dist : {
-        base : './dist',
-        view : './dist',
-        css  : './dist/css',
-        img  : './dist/image',
-        js   : './dist/js'
+        base : './',
+        view : './view',
+        css  : './css',
+        img  : './image',
+        js   : './js'
     },
     ext : {
         base : './node_modules',
@@ -119,7 +119,7 @@ gulp.task('images', function() {
 
 // Clean
 gulp.task('clean', function() {
-  return del([path.dist.base]);
+  return del([path.dist.js,path.dist.img,path.dist.css,path.dist.base + 'rev-manifest.json']);
 });
 //Copy Html View Files
 gulp.task('copyHtml', function(){
@@ -135,7 +135,7 @@ gulp.task('copyJsLib', function(){
 gulp.task('reversion', function () {
     // by default, gulp would pick `assets/css` as the base, 
     // so we need to set it explicitly: 
-    return gulp.src([path.dist.css + '/*.min.css', path.dist.js + '/*.min.js'], {base: './'})
+    return gulp.src([path.dist.css + '/*.min.css', path.dist.js + '/*.min.js'], {base: '.'})
         .pipe(reversion())
         .pipe(gulp.dest('.'))  // write rev'd assets to build dir 
         .pipe(reversion.manifest())
