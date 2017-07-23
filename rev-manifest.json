@@ -1,5 +1,10 @@
 {
-  "css/bootstrap.min.css": "css/bootstrap-233ba9dd68.min.css",
-  "css/style.min.css": "css/style-1cf0050b09.min.css",
-  "js/script.min.js": "js/script-d8cb2b04b1.min.js"
+	"css/bootstrap.min.css": "../css/bootstrap-233ba9dd68.min.css",
+	"css/style.min.css": "../css/style-1cf0050b09.min.css",
+	"image/LP-of-hybrid-APP-A.png": "../image/LP-of-hybrid-APP-A-11076f7349.png",
+	"image/content-a.png": "../image/content-a-cd66075015.png",
+	"image/content-b.png": "../image/content-b-80bbfb8368.png",
+	"image/favicon.ico": "../image/favicon-724e97b596.ico",
+	"image/logo.png": "../image/logo-47df8e3353.png",
+	"js/script.min.js": "../js/script-d8cb2b04b1.min.js"
 }

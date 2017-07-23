@@ -2,7 +2,7 @@
 var setting = {
     isProduction : true,
     sourceMap : false,
-    fileSuffix : 'html'
+    pathPrefix : '../'
 }
 
 var path = {
@@ -47,9 +47,8 @@ var gulp = require('gulp'),
     revReplace = require('gulp-rev-replace'),
     lessMinifier = require('less-plugin-clean-css')
     autoprefix = new autoprefixer({browsers: ["last 10 versions"]}),
-    minifyCss = new lessMinifier({advanced: true})
+    minifyCss = new lessMinifier({advanced: true}),
     fs = require('fs');
-
 if(gutil.env.dev === true) {
     setting.sourceMap = true;
     setting.isProduction = false;
@@ -119,7 +118,7 @@ gulp.task('images', function() {
 
 // Clean
 gulp.task('clean', function() {
-  return del([path.dist.js,path.dist.img,path.dist.css,path.dist.base + 'rev-manifest.json']);
+  return del([path.dist.js,path.dist.img,path.dist.css,path.dist.view,path.dist.base + 'rev-manifest.json']);
 });
 //Copy Html View Files
 gulp.task('copyHtml', function(){
@@ -135,16 +134,27 @@ gulp.task('copyJsLib', function(){
 gulp.task('reversion', function () {
     // by default, gulp would pick `assets/css` as the base, 
     // so we need to set it explicitly: 
-    return gulp.src([path.dist.css + '/*.min.css', path.dist.js + '/*.min.js'], {base: '.'})
+    return gulp.src([path.dist.css + '/*.min.css', path.dist.js + '/*.min.js', path.dist.img + '/*.*'], {base: './'})
         .pipe(reversion())
-        .pipe(gulp.dest('.'))  // write rev'd assets to build dir 
-        .pipe(reversion.manifest())
+        .pipe(gulp.dest(path.dist.base))  // write rev'd assets to build dir 
+        .pipe(reversion.manifest({base: './'}))
         .pipe(gulp.dest(path.dist.base)); // write manifest to build dir 
 });
 
 gulp.task('replace', ['copyHtml', 'reversion'], function(){
     //var manifest = gulp.src();
-    return gulp.src([path.dist.base + "/rev-manifest.json", path.dist.view + '/index.html'])
+    gutil.log('open manifest.json to do some decration');
+    var manifestPath = path.dist.base + 'rev-manifest.json';
+    var manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    //console.log(manifest['css/bootstrap.min.css'])
+    for(k in manifest){
+        manifest[k] = setting.pathPrefix + manifest[k];
+    }
+    console.log(manifest)
+    fs.writeFile(manifestPath, JSON.stringify(manifest, null, "\t"), (err) => {
+      if (err) throw err;
+    });
+    return gulp.src([manifestPath, path.dist.view + '/index.html'])
     .pipe(revCollector({
         revReplace: true
     }))
