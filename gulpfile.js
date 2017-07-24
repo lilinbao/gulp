@@ -2,7 +2,8 @@
 var setting = {
     isProduction : true,
     sourceMap : false,
-    pathPrefix : '../'
+    pathPrefix : '../',
+    viewSubfix : '.html'
 }
 
 var path = {
@@ -27,28 +28,29 @@ var path = {
     }
 }
 
-var gulp = require('gulp'),
-    sass = require('gulp-ruby-sass'),
+var fs = require('fs'),
+    del = require('del'),
+    gulp = require('gulp'),
     less = require('gulp-less'),
-    autoprefixer = require('less-plugin-autoprefix'),
-    cssnano = require('gulp-cssnano'),
-    sourcemaps = require('gulp-sourcemaps'),
+    gutil = require('gulp-util'),
+    cache = require('gulp-cache'),
     jshint = require('gulp-jshint'),
     uglify = require('gulp-uglify'),
-    imagemin = require('gulp-imagemin'),
     rename = require('gulp-rename'),
     concat = require('gulp-concat'),
     notify = require('gulp-notify'),
-    cache = require('gulp-cache'),
-    del = require('del'),
-    gutil = require('gulp-util'),
     reversion = require('gulp-rev'),
-    revCollector = require('gulp-rev-collector'),
+    sass = require('gulp-ruby-sass'),
+    cssnano = require('gulp-cssnano'),
+    imagemin = require('gulp-imagemin'),
+    sourcemaps = require('gulp-sourcemaps'),
     revReplace = require('gulp-rev-replace'),
-    lessMinifier = require('less-plugin-clean-css')
-    autoprefix = new autoprefixer({browsers: ["last 10 versions"]}),
-    minifyCss = new lessMinifier({advanced: true}),
-    fs = require('fs');
+    revCollector = require('gulp-rev-collector'),
+    lessMinifier = require('less-plugin-clean-css'),
+    minifyCss = new lessMinifier({advanced : true}),
+    autoprefixer = require('less-plugin-autoprefix'),
+    autoprefix = new autoprefixer({browsers: ["last 10 versions"]});
+
 if(gutil.env.dev === true) {
     setting.sourceMap = true;
     setting.isProduction = false;
@@ -72,6 +74,7 @@ gulp.task('styles', function () {
         .pipe(gulp.dest(path.dist.css))
         .pipe(notify('Less style compiled'));
 });
+
 gulp.task('bootstrap', function () {
     var lessPlugins = new Array();
     lessPlugins.push(autoprefix) ;
@@ -142,25 +145,20 @@ gulp.task('reversion', function () {
 });
 
 gulp.task('replace', ['copyHtml', 'reversion'], function(){
-    //var manifest = gulp.src();
-    gutil.log('open manifest.json to do some decration');
     var manifestPath = path.dist.base + 'rev-manifest.json';
     var manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    //console.log(manifest['css/bootstrap.min.css'])
     for(k in manifest){
         manifest[k] = setting.pathPrefix + manifest[k];
     }
-    console.log(manifest)
     fs.writeFile(manifestPath, JSON.stringify(manifest, null, "\t"), (err) => {
       if (err) throw err;
     });
-    return gulp.src([manifestPath, path.dist.view + '/index.html'])
+    return gulp.src([manifestPath, path.dist.view + '/*/**/*'+setting.viewSubfix])
     .pipe(revCollector({
         revReplace: true
     }))
     .pipe(gulp.dest(path.dist.view));
 });
-
 
 // Default task
 gulp.task('default', ['clean','styles', 'bootstrap', 'scripts', 'images'], function() {
@@ -168,7 +166,6 @@ gulp.task('default', ['clean','styles', 'bootstrap', 'scripts', 'images'], funct
         gulp.start('replace');
     }else
         gulp.start('watch');
-
 });
 
 // Watch
@@ -188,8 +185,6 @@ gulp.task('watch', function() {
     }catch(err){
         gutil.log('error occur: ' + err);
     }
-    
-    
     gulp.watch(path.src.base + '/view/**/*.html', ['copyHtml']);
     // Watch .scss files
     gulp.watch(path.src.base + '/css/**/*.less', ['styles']);
